@@ -35,8 +35,8 @@ jobs:
           platforms: linux/amd64, linux/arm64
           push: true
           tags: |
-            kosier/webapplication:latest
-            kosier/webapplication:${{ inputs.tag }}
+            piotrtokarski/app:latest
+            piotrtokarski/app:${{ inputs.tag }}
             
   kubernetesCI:
     runs-on: ubuntu-latest
