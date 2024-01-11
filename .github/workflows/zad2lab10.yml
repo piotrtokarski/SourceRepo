@@ -1,18 +1,64 @@
-name: Docker Image CI
+name: Build and Push Docker Image
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        required: true
+        default: 'latest'
 
 jobs:
-
-  build:
-
+  dockerCI:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v3
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+      - name: Checkout SourceRepo
+        uses: actions/checkout@v4
+        with:
+          repository: piotrtokarski/SourceRepo
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64, linux/arm64
+          push: true
+          tags: |
+            kosier/webapplication:latest
+            kosier/webapplication:${{ inputs.tag }}
+            
+  kubernetesCI:
+    runs-on: ubuntu-latest
+    needs: dockerCI
+    steps:
+      - name: Checkout ConfigRepo
+        uses: actions/checkout@v4
+        with:
+          repository: piotrtokarski/ConfigRepo
+          token: ${{ secrets.GHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.email "piotr.tokarski@pollub.edu.pl"
+          git config user.name "piotrtokarski"
+
+      - name: Update Manifest
+        run: |
+          sed -i "s/app:.*/webapplication:${{ inputs.tag }}/g" deployment.yaml
+
+      - name: Commit and Push
+        run: |
+          git add .
+          git commit -m "Update"
+          git push
