@@ -55,7 +55,7 @@ jobs:
 
       - name: Update Manifest
         run: |
-          sed -i "s/app:.*/webapplication:${{ inputs.tag }}/g" deployment.yaml
+          sed -i "s/app:.*/app:${{ inputs.tag }}/g" deployment.yaml
 
       - name: Commit and Push
         run: |
